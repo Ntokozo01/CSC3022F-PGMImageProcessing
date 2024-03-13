@@ -71,8 +71,8 @@ bool PGMIP::readPGMImage()
     return image_read;
 }
 
-//
-void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> cc, std::vector<std::pair<int, int>> &q, int y, int x, int source, int minValidSize, int threshold)
+// Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
+void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> cc, int y, int x, int source, int minValidSize, int threshold)
 {
     // Condition for checking out of bounds on pixels array
     if (y < 0 || y >= imageWidth || x < 0 || x >= imageWidth)
@@ -93,13 +93,13 @@ void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> cc, std::vector<std::p
     // From above this pixel is of a connected component, so add its coordinates with the mates
     cc->addCoords(x, y);
 
-    floodFill(cc, q, y - 1, x, source, minValidSize, threshold); // Visit the North pixel
+    floodFill(cc, y - 1, x, source, minValidSize, threshold); // Visit the North pixel
 
-    floodFill(cc, q, y + 1, x, source, minValidSize, threshold); // Visit the South pixel
+    floodFill(cc, y + 1, x, source, minValidSize, threshold); // Visit the South pixel
 
-    floodFill(cc, q, y, x + 1, source, minValidSize, threshold); // Visit the East pixel
+    floodFill(cc, y, x + 1, source, minValidSize, threshold); // Visit the East pixel
 
-    floodFill(cc, q, y, x - 1, source, minValidSize, threshold); // Visit the West pixel
+    floodFill(cc, y, x - 1, source, minValidSize, threshold); // Visit the West pixel
 }
 
 /* process the input image to extract all the connected components,
@@ -111,7 +111,7 @@ must be returned.
 
 int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
 {
-    std::cout << "Extracting Components from image file " << std::endl;
+    std::cout << "Extracting Components from image file ..." << std::endl;
 
     int k = 0;
     int l = 0;
@@ -161,15 +161,76 @@ int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
         // its pixel neighbours thus identifying a component and adding it to the Container
         if (source > minValidSize)
         {
-            floodFill(cc, queue, coordinates.second, coordinates.first, source, minValidSize, threshold);
+            floodFill(cc, coordinates.second, coordinates.first, source, minValidSize, threshold);
 
             std::pair<std::shared_ptr<ConnectedComponent>, int> element(cc, source);
             CCcontainer.push_back(element);
         }
     }
-    printAll();
     // return the number of connected components identified
     return CCcontainer.size();
+}
+
+/* iterate - with an iterator - though your container of connected
+components and filter out (remove) all the components which do not
+obey the size criteria pass as arguments. The number remaining
+after this operation should be returned.
+*/
+int PGMIP::filterComponentsBySize(int minSize, int maxSize)
+{
+    std::cout << "Filtering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
+    using namespace std;
+    vector<pair<shared_ptr<ConnectedComponent>,
+                unsigned char>>::iterator it = CCcontainer.begin();
+    while (it < CCcontainer.end())
+    {
+        int numPixels = it->first->getNumPixels();
+        if (numPixels < minSize || numPixels > maxSize)
+        {
+            CCcontainer.erase(it);
+            --it; // go back to the last possible index as this element is erased
+        }
+        ++it; // move to the next element in the container
+    }
+    return CCcontainer.size();
+}
+
+// Return number of connected components identified
+int PGMIP::getComponentCount(void) const
+{
+    return CCcontainer.size();
+}
+
+// return number of pixels in largest component
+int PGMIP::getLargestSize(void) const
+{
+    int largest = 0;
+    for (int k = 0; k < CCcontainer.size(); ++k)
+    {
+        int num = CCcontainer[k].first->getNumPixels();
+
+        if (num > largest)
+        {
+            largest = num;
+        }
+    }
+    return largest;
+}
+
+// return number of pixels in smallest component
+int PGMIP::getSmallestSize(void) const
+{
+    int smallest = 10000;
+    for (int k = 0; k < CCcontainer.size(); ++k)
+    {
+        int num = CCcontainer[k].first->getNumPixels();
+
+        if (num < smallest)
+        {
+            smallest = num;
+        }
+    }
+    return smallest;
 }
 
 // Prints all the connected components in the container and their data or connected pixel coordinates
@@ -188,9 +249,8 @@ print out to std::cout: component ID, number of pixels
 */
 void PGMIP::printComponentData(const ConnectedComponent &theComponent) const
 {
-    std::cout << "Component ID: " << theComponent.getID() << ", Number of Pixels: " << theComponent.getNumPixels() << std::endl;
-
     int length = theComponent.getNumPixels();
+    std::cout << "Component ID: " << theComponent.getID() << ", Number of Pixels: " << length << std::endl;
 
     /*for (int i = 0; i < length; ++i)
     {
