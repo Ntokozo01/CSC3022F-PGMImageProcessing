@@ -3,6 +3,7 @@
 
 #include "ConnectedComponent.h"
 #include <string>
+#include <memory>
 #define u_char unsigned char
 
 
@@ -14,7 +15,11 @@ namespace NDLMDU011
         std::string filename;
         int imageHeight;
         int imageWidth;
+
+        // 2D array for input/output image pixels data
         unsigned char **pixels;
+        // Container for connected components pairwise with its pixel value
+        std::vector< std::pair<std::shared_ptr<ConnectedComponent>, unsigned char> > CCcontainer; 
 
     public:
         PGMimageProcessor(std::string fname);
@@ -22,6 +27,9 @@ namespace NDLMDU011
         ~PGMimageProcessor();
 
         bool readPGMImage(void);
+
+        void floodFill(std::shared_ptr<ConnectedComponent> cc, std::vector<std::pair<int,int>> &q,
+         int y, int x, int source, int minValidSize, int threshold);
 
         int extractComponents(u_char threshold, int minValidSize);
 
@@ -34,6 +42,8 @@ namespace NDLMDU011
         int getLargestSize(void) const;
 
         int getSmallestSize(void) const;
+
+        void printAll() const;
 
         void printComponentData(const ConnectedComponent &theComponent) const;
 

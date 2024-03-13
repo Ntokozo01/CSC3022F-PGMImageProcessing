@@ -53,8 +53,25 @@ int main(int argc, char *argv[])
 
     std::cout << "Input file name: " << inputImageFile << std::endl;
     std::cout << "Minimum size: " << minSize << " Maximum size: " << maxSize << std::endl;
-    std::cout << "threshold: " << threshold << std::endl;
+    std::cout << "Threshold: " << threshold << std::endl;
     std::cout << "Print components data?: " << bprintComponents << std::endl;
 
-    return 1;
+    NDLMDU011::PGMimageProcessor imageProcessor(inputImageFile);
+    bool image_read = imageProcessor.readPGMImage();
+    if (!image_read) {
+        std::cerr << "There was an error in reading the image file." << std::endl;
+        return 1;
+    }
+     std::cout << "Image read successfully." << std::endl;
+
+    int size = imageProcessor.extractComponents(threshold, minSize);
+    std::cout << "Number of connected components (unfiltered): " << size << std::endl;
+
+    if (bprintComponents)
+    {
+        std::cout << "\nPrinting the Conected components to console..." << std::endl;
+        imageProcessor.printAll();
+    }
+
+    return 0;
 }
