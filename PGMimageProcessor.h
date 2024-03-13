@@ -21,7 +21,7 @@ namespace NDLMDU011
 
         ~PGMimageProcessor();
 
-        void readPGMImage(void);
+        bool readPGMImage(void);
 
         int extractComponents(u_char threshold, int minValidSize);
 
