@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
 
     int minSize = 3, maxSize = 100000000;
-    int threshold, minValidSize = 5;
+    int threshold, minValidSize = 1;
     std::string inputImageFile, outImageFile;
     bool bfilter = false, bprintComponents = false, bwriteComponents = false;
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                inputImageFile = argv[argc-1];
+                inputImageFile = argv[argc - 1];
             }
             k++;
         }
@@ -63,9 +63,10 @@ int main(int argc, char *argv[])
         std::cerr << "There was an error in reading the image file." << std::endl;
         return 1;
     }
-    std::cout << "Image read successfully.\n" << std::endl;
+    std::cout << "Image read successfully.\n"
+              << std::endl;
 
-    imageProcessor.extractComponents(threshold, minValidSize);
+    imageProcessor.extractComponents(threshold, minSize);
     std::cout << "Number of connected components (unfiltered): " << imageProcessor.getComponentCount() << std::endl;
 
     int ans = imageProcessor.getLargestSize();
@@ -83,6 +84,12 @@ int main(int argc, char *argv[])
         std::cout << "The largest Connected Component has " << imageProcessor.getLargestSize() << " pixels." << std::endl;
 
         std::cout << "Smallest Connected Component has " << imageProcessor.getSmallestSize() << " pixels." << std::endl;
+    }
+
+    if (bwriteComponents)
+    {
+        std::cout << "\nWriting.. Connected components to PGM Image file " << std::endl;
+        bool done = imageProcessor.writeComponents(outImageFile);
     }
 
     if (bprintComponents)

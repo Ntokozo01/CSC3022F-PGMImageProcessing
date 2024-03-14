@@ -28,12 +28,14 @@ namespace NDLMDU011
 
         bool readPGMImage(void);
 
-        void floodFill(std::shared_ptr<ConnectedComponent> cc,
-         int y, int x, int source, int minValidSize, int threshold);
+        void floodFill(std::shared_ptr<ConnectedComponent>& cc,
+         int y, int x, int source, u_char seen, u_char threshold);
 
         int extractComponents(u_char threshold, int minValidSize);
 
         int filterComponentsBySize(int minSize, int maxSize);
+
+        bool setComponentsToArray();
 
         bool writeComponents(const std::string &outFileName);
 
