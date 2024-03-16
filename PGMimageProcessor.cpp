@@ -16,11 +16,7 @@ u_char white = 255;
 u_char black = 0;
 
 // Custom constructor
-PGMIP::PGMimageProcessor(std::string fname) : filename(fname)
-{
-    imageHeight = 0; // number of vertical pixels
-    imageWidth = 0;  // number of horizontal pixels in an image
-}
+PGMIP::PGMimageProcessor(std::string fname) : filename(fname), imageHeight(0), imageWidth(0) {}
 
 PGMIP::~PGMimageProcessor()
 {
@@ -57,7 +53,7 @@ bool PGMIP::readPGMImage()
     pixels = new unsigned char *[imageHeight];
     // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
     char p;
-    int counter = 0;
+    counter = 0;
     for (int i = 0; i < imageHeight; ++i)
     {
         pixels[i] = new unsigned char[imageWidth];
@@ -79,8 +75,8 @@ bool PGMIP::readPGMImage()
 // Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
 void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> &cc, int y, int x, int source, u_char seen, u_char threshold)
 {
-    //std::cout << "Flood fill: (" << x << "," << y << ")" << std::endl;
-    //   Condition for checking out of bounds on pixels array
+    // std::cout << "Flood fill: (" << x << "," << y << ")" << std::endl;
+    //    Condition for checking out of bounds on pixels array
     if (y < 0 || y >= imageHeight || x < 0 || x >= imageWidth)
     {
         return;
@@ -94,24 +90,23 @@ void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> &cc, int y, int x, int
         return;
     }*/
 
-
-
-    if (pix < threshold){
+    if (pix < threshold)
+    {
         pixels[y][x] = seen;
-        //std::cout << "Seen: " << pix << std::endl;
+        // std::cout << "Seen: " << pix << std::endl;
         return;
     }
 
     // if (pix <= seen|| ((pix != source) && pixels[y][x] >= threshold))
     if (pix != source)
     {
-        //std::cout << "Pix value " << pix << std::endl;
+        // std::cout << "Pix value " << pix << std::endl;
         return;
     }
 
-    //std::cout << "Pix: " << pix << " source: " << source << std::endl;
-    // std::cout << "added to component" << std::endl;
-    //  Change the value of this pixel to the minimum valid pixel value identifying it as "seen"
+    // std::cout << "Pix: " << pix << " source: " << source << std::endl;
+    //  std::cout << "added to component" << std::endl;
+    //   Change the value of this pixel to the minimum valid pixel value identifying it as "seen"
     pixels[y][x] = seen;
     // From above this pixel is of a connected component, so add its coordinates with the mates
     cc->addCoords(x, y);
@@ -152,7 +147,9 @@ int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
             first.first = l;
             first.second = k;
             queue.push_back(first);
-        } else {
+        }
+        else
+        {
             pixels[k][l] = seen;
         }
 
@@ -174,8 +171,8 @@ int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
     {
         // Dequeue the last pixel coordinate addeed to the queue and visit the pixel if not visited already
         std::pair<int, int> coordinates = queue.back();
-        //std::cout << "first: " << coordinates.first << " second: " << coordinates.second << " pixel: " << (0 + pixels[coordinates.second][coordinates.first]);
-        //std::cout << " queue size: " << queue.size() << std::endl;
+        // std::cout << "first: " << coordinates.first << " second: " << coordinates.second << " pixel: " << (0 + pixels[coordinates.second][coordinates.first]);
+        // std::cout << " queue size: " << queue.size() << std::endl;
 
         queue.pop_back();
         std::shared_ptr<ConnectedComponent> cc(new ConnectedComponent(0, CCcontainer.size()));

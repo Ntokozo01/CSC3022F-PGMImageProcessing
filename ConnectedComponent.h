@@ -15,6 +15,8 @@ namespace NDLMDU011
         std::vector<std::pair<int, int>> pixelCoords;
 
     public:
+        unsigned char pixel_value;
+
         /// ConnectedComponent no-args constructor
         ConnectedComponent();
         /// ConnectedComponent Custom constructor
@@ -24,7 +26,7 @@ namespace NDLMDU011
 
         /// ConnectedComponent Copy Constructor
         ConnectedComponent(const ConnectedComponent &cc);
-        
+
         /// ConnectedComponent Move Constructor
         ConnectedComponent(ConnectedComponent &&cc);
 
@@ -53,6 +55,8 @@ namespace NDLMDU011
         int getNumPixels() const { return numPixels; }
         // returns the integer ID of this ConnectedComponent
         int getID() const { return compID; }
+
+        unsigned char getPixelValue(void) const { return pixel_value; }
     };
 }
 

@@ -26,12 +26,12 @@ void CC::addCoords(int x, int y)
 
 int CC::getX(int index) const
 {
-    return pixelCoords[index].first;
+    return pixelCoords.at(index).first;
 }
 
 int CC::getY(int index) const
 {
-    return pixelCoords[index].second;
+    return pixelCoords.at(index).second;
 }
 
 // Copy constructor

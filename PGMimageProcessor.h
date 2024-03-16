@@ -20,6 +20,8 @@ namespace NDLMDU011
         unsigned char **pixels;
         // Container for connected components pairwise with its pixel value
         std::vector< std::pair<std::shared_ptr<ConnectedComponent>, unsigned char> > CCcontainer; 
+    public:
+        int counter = 0;
 
     public:
         PGMimageProcessor(std::string fname);
