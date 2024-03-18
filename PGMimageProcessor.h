@@ -6,7 +6,6 @@
 #include <memory>
 #define u_char unsigned char
 
-
 namespace NDLMDU011
 {
     class PGMimageProcessor
@@ -19,7 +18,8 @@ namespace NDLMDU011
         // 2D array for input/output image pixels data
         unsigned char **pixels;
         // Container for connected components pairwise with its pixel value
-        std::vector< std::pair<std::shared_ptr<ConnectedComponent>, unsigned char> > CCcontainer; 
+        std::vector<std::shared_ptr<ConnectedComponent>> CCcontainer;
+
     public:
         int counter = 0;
 
@@ -30,8 +30,8 @@ namespace NDLMDU011
 
         bool readPGMImage(void);
 
-        void floodFill(std::shared_ptr<ConnectedComponent>& cc,
-         int y, int x, int source, u_char seen, u_char threshold);
+        void floodFill(unsigned char **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc,
+                       int y, int x, u_char source, u_char &seen, u_char &threshold);
 
         int extractComponents(u_char threshold, int minValidSize);
 
@@ -51,7 +51,10 @@ namespace NDLMDU011
 
         void printComponentData(const ConnectedComponent &theComponent) const;
 
-    };  
+        unsigned char **getPixelsArr() const;
+    };
+
+    void clearArray(unsigned char **arr, int height);
 
 }
 

@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
         int k = 0;
         while (k < argc)
         {
-            std::cout << argv[k] << std::endl;
             if (std::string(argv[k]) == "-s")
             {
                 bfilter = true;
@@ -27,6 +26,7 @@ int main(int argc, char *argv[])
             else if (std::string(argv[k]) == "-t")
             {
                 threshold = std::stoi(argv[++k]);
+                threshold = std::min(std::max(threshold, 0), 255); // Bound threshold between 0 and 255- both inclusive
             }
             else if (std::string(argv[k]) == "-p")
             {
@@ -36,10 +36,21 @@ int main(int argc, char *argv[])
             {
                 bwriteComponents = true;
                 outImageFile = argv[++k];
+
+                int period = outImageFile.find_last_of(".");
+                if (period < 0)
+                {
+                    outImageFile += ".pgm"; // outImageFile.substr(0,period);
+                }
             }
             else
             {
                 inputImageFile = argv[argc - 1];
+                int period = inputImageFile.find_last_of(".");
+                if (period < 0)
+                {
+                    inputImageFile = inputImageFile + ".pgm";
+                }
             }
             k++;
         }
@@ -56,47 +67,49 @@ int main(int argc, char *argv[])
     std::cout << "Threshold: " << threshold << std::endl;
     std::cout << "Print components data?: " << bprintComponents << std::endl;
 
-    NDLMDU011::PGMimageProcessor imageProcessor(inputImageFile);
-    bool image_read = imageProcessor.readPGMImage();
+    NDLMDU011::PGMimageProcessor *imageProcessor = new NDLMDU011::PGMimageProcessor(inputImageFile);
+    bool image_read = imageProcessor->readPGMImage();
     if (!image_read)
     {
-        std::cerr << "There was an error in reading the image file." << std::endl;
+        std::cerr << "File Not Found." << std::endl;
         return 1;
     }
-    std::cout << "Image read successfully.\n"
+
+    std::cout << "Image read successfully."
+              << std::endl
               << std::endl;
 
-    imageProcessor.extractComponents(threshold, minSize);
-    std::cout << "Number of connected components (unfiltered): " << imageProcessor.getComponentCount() << std::endl;
+    imageProcessor->extractComponents(threshold, minSize);
+    std::cout << "Number of connected components (unfiltered): " << imageProcessor->getComponentCount() << std::endl;
 
-    int ans = imageProcessor.getLargestSize();
+    int ans = imageProcessor->getLargestSize();
     std::cout << "The largest Connected Component has " << ans << " pixels." << std::endl;
 
-    ans = imageProcessor.getSmallestSize();
+    ans = imageProcessor->getSmallestSize();
     std::cout << "Smallest Connected Component has " << ans << " pixels." << std::endl;
 
     if (bfilter)
     {
-        std::cout << std::endl;
-        int size = imageProcessor.filterComponentsBySize(minSize, maxSize);
+        std::cout << "\nFiltering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
+        int size = imageProcessor->filterComponentsBySize(minSize, maxSize);
+
         std::cout << "Number of connected components (filtered): " << size << std::endl;
-
-        std::cout << "The largest Connected Component has " << imageProcessor.getLargestSize() << " pixels." << std::endl;
-
-        std::cout << "Smallest Connected Component has " << imageProcessor.getSmallestSize() << " pixels." << std::endl;
+        std::cout << "The largest Connected Component has " << imageProcessor->getLargestSize() << " pixels." << std::endl;
+        std::cout << "Smallest Connected Component has " << imageProcessor->getSmallestSize() << " pixels." << std::endl;
     }
 
     if (bwriteComponents)
     {
         std::cout << "\nWriting.. Connected components to PGM Image file " << std::endl;
-        bool done = imageProcessor.writeComponents(outImageFile);
+        bool done = imageProcessor->writeComponents(outImageFile);
     }
 
     if (bprintComponents)
     {
         std::cout << "\nPrinting the Conected components to console..." << std::endl;
-        imageProcessor.printAll();
+        imageProcessor->printAll();
     }
+    delete imageProcessor;
 
     return 0;
 }

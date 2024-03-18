@@ -7,11 +7,12 @@
 #include <sstream>
 #include <memory>
 #include <vector>
+#include <queue>
 #include <fstream>
 
 #define PGMIP NDLMDU011::PGMimageProcessor
 
-u_char seen = 0;
+u_char seen = 0;        // Minimum valid pixel value for components
 u_char white = 255;
 u_char black = 0;
 
@@ -20,7 +21,7 @@ PGMIP::PGMimageProcessor(std::string fname) : filename(fname), imageHeight(0), i
 
 PGMIP::~PGMimageProcessor()
 {
-    std::cout << "Destructor" << std::endl;
+    // std::cout << "Destructor" << std::endl;
 
     for (int i = 0; i < imageHeight; ++i)
     {
@@ -33,7 +34,10 @@ bool PGMIP::readPGMImage()
 {
     // Read the PGM input image and save the data in the appropriate variables
     std::ifstream file_reader(filename, std::fstream::binary);
-    std::cout << "Reading file: " << filename << std::endl;
+
+    if (!file_reader)
+        return false;
+
     std::string line;
     std::getline(file_reader, line); // get the Magic number of input image which is "P5"
 
@@ -62,135 +66,111 @@ bool PGMIP::readPGMImage()
             counter++;
             file_reader.read(&p, 1);
             pixels[i][j] = static_cast<unsigned char>(p);
-            //  std::cout << (0 + pixels[i][j]) << " ";
+            // std::cout << (0 + pixels[i][j]) << " ";
         }
         // std::cout << std::endl;
     }
-    std::cout << "Counter: " << counter << std::endl;
-    // std::cout << "Size: " << sizeof(pixels) << " " << sizeof(pixels[0]) << std::endl;
     bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
     return image_read;
 }
 
-// Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
-void PGMIP::floodFill(std::shared_ptr<ConnectedComponent> &cc, int y, int x, int source, u_char seen, u_char threshold)
+unsigned char **PGMIP::getPixelsArr() const
 {
-    // std::cout << "Flood fill: (" << x << "," << y << ")" << std::endl;
-    //    Condition for checking out of bounds on pixels array
-    if (y < 0 || y >= imageHeight || x < 0 || x >= imageWidth)
-    {
-        return;
-    }
-    int pix = pixels[y][x];
-    // std::cout << " Value: " << pix << std::endl;
+    unsigned char **arr = new unsigned char *[imageHeight];
 
-    // If this pixel has already been visited (pix <= minValidSize) or is not part of this connected component return back
-    // for : ((pix != source) &&  pixels[y][x] > threshold) are the pixels in the queue yet to be visited
-    /*if (pix == seen || pix != source){
-        return;
-    }*/
-
-    if (pix < threshold)
+    for (int i = 0; i < imageHeight; ++i)
     {
-        pixels[y][x] = seen;
-        // std::cout << "Seen: " << pix << std::endl;
-        return;
+        arr[i] = new unsigned char[imageWidth];
+        for (int j = 0; j < imageWidth; ++j)
+        {
+            arr[i][j] = pixels[i][j];
+        }
     }
 
-    // if (pix <= seen|| ((pix != source) && pixels[y][x] >= threshold))
-    if (pix != source)
-    {
-        // std::cout << "Pix value " << pix << std::endl;
-        return;
-    }
-
-    // std::cout << "Pix: " << pix << " source: " << source << std::endl;
-    //  std::cout << "added to component" << std::endl;
-    //   Change the value of this pixel to the minimum valid pixel value identifying it as "seen"
-    pixels[y][x] = seen;
-    // From above this pixel is of a connected component, so add its coordinates with the mates
-    cc->addCoords(x, y);
-
-    floodFill(cc, y - 1, x, source, seen, threshold); // Visit the North pixel
-
-    floodFill(cc, y + 1, x, source, seen, threshold); // Visit the South pixel
-
-    floodFill(cc, y, x + 1, source, seen, threshold); // Visit the East pixel
-
-    floodFill(cc, y, x - 1, source, seen, threshold); // Visit the West pixel
+    return arr;
 }
 
-/* process the input image to extract all the connected components,
-based on the supplied threshold (0...255) and excluding any components
-of less than the minValidSize. The final number of components that
-you store in your container (after discarding undersized one)
-must be returned.
-*/
-
-int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
+// Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
+void PGMIP::floodFill(u_char **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc, int y, int x, u_char source, u_char &seen, u_char &threshold)
 {
-    std::cout << "Extracting Components from image file ..." << std::endl;
-
-    int k = 0;
-    int l = 0;
-
-    std::vector<std::pair<int, int>> queue;
-
-    // Loop through the pixels array
-    while (k < imageHeight && l < imageWidth)
+    // Condition for checking out of bounds on pixels array then checks this next pixels to add is part of component
+    if ((y < 0 || y >= imageHeight) || (x < 0) || (x >= imageWidth) || (pixels_arr[y][x] != source))
     {
-        // std::cout << "k: " << k << " l: " << l << " pixel: " << (0 + pixels[k][l]) <<  std::endl;
-        // Add to queue all coordinates of pixels that are above threshold value for detection
-        if ((pixels[k][l]) >= threshold)
-        {
-            std::pair<int, int> first(l, k);
-            first.first = l;
-            first.second = k;
-            queue.push_back(first);
-        }
-        else
-        {
-            pixels[k][l] = seen;
-        }
-
-        l++;
-        if (l == imageWidth)
-        {
-            l = 0;
-            k++;
-        }
+        return;
     }
 
-    // std::cout << "k: " << k << " l: " << l << std::endl;
+    //  Change the value of this pixel value to be identified as "seen" or processed
+    pixels_arr[y][x] = seen;
 
-    // create the processing queue and add the first pixel to process to the queue
+    // From above this pixel is of a connected component, so add its coordinates with the mates
+    cc->addCoords(x, y);
+    // std::cout << " added coordinates to component" << std::endl;
+
+    floodFill(pixels_arr, cc, y - 1, x, source, seen, threshold); // Visit the North pixel
+
+    floodFill(pixels_arr, cc, y + 1, x, source, seen, threshold); // Visit the South pixel
+
+    floodFill(pixels_arr, cc, y, x + 1, source, seen, threshold); // Visit the East pixel
+
+    floodFill(pixels_arr, cc, y, x - 1, source, seen, threshold); // Visit the West pixel
+}
+
+/* process the input image to extract all the connected components, based on the supplied threshold (0...255)
+ and excluding any components of less than the minValidSize. The final number of components that
+you store in your container (after discarding undersized one) must be returned.
+*/
+int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
+{
+    // std::cout << "Extracting Components from image file ..." << std::endl;
+
+    int y = 0;
+    int x = 0;
+
+    std::queue<std::pair<int, int>> queue;
+
+    // Loop through the pixels array
+    while (y < imageHeight && x < imageWidth)
+    {
+        // Add to queue all coordinates of pixels that are above threshold value for detection
+        if ((pixels[y][x]) >= threshold)
+        {
+            std::pair<int, int> first(x,y);
+            queue.push(first);
+        }
+
+        x++;
+        if (x == imageWidth)
+        {
+            x = 0;
+            y++;
+        }
+    }
 
     // While the queue is not empty, visit the pixels and process them to find connected
     // components from the pixels and their neighbours
     while (queue.size() > 0)
     {
-        // Dequeue the last pixel coordinate addeed to the queue and visit the pixel if not visited already
-        std::pair<int, int> coordinates = queue.back();
-        // std::cout << "first: " << coordinates.first << " second: " << coordinates.second << " pixel: " << (0 + pixels[coordinates.second][coordinates.first]);
-        // std::cout << " queue size: " << queue.size() << std::endl;
+        // Dequeue the last pixel coordinate added to the queue and visit the pixel if not visited already
+        std::pair<int, int> coordinates = queue.front();
+        queue.pop();
 
-        queue.pop_back();
-        std::shared_ptr<ConnectedComponent> cc(new ConnectedComponent(0, CCcontainer.size()));
-
-        // integer pixel value for this popped pixel in the queue
-        int source = 0 + pixels[coordinates.second][coordinates.first];
-        // std::cout << "Source : " << source << std::endl;
+        // pixel value for this popped pixel in the queue
+        unsigned char source = pixels[coordinates.second][coordinates.first];
 
         // If the pixel value is above mininmum valid pixel value (or not been processed) use flood fill algorithm to get
         // its pixel neighbours thus identifying a component and adding it to the Container
         if (source > seen)
         {
-            floodFill(cc, coordinates.second, coordinates.first, source, seen, threshold);
+            // std::cout << "(" << coordinates.second << ", " << coordinates.first << ")  pixel: " << (0 + pixels[coordinates.second][coordinates.first]);
+            // std::cout << " queue size: " << queue.size() << std::endl;
+            std::shared_ptr<ConnectedComponent> cc(new ConnectedComponent(0, CCcontainer.size()));
+            cc->pixel_value = pixels[coordinates.second][coordinates.first];
+
+            floodFill(pixels, cc, coordinates.second, coordinates.first, source, seen, threshold);
 
             if (cc->getNumPixels() >= minValidSize)
             {
-                std::pair<std::shared_ptr<ConnectedComponent>, int> element(cc, source);
-                CCcontainer.push_back(element);
+                CCcontainer.push_back(cc);
             }
         }
     }
@@ -198,20 +178,16 @@ int PGMIP::extractComponents(unsigned char threshold, int minValidSize)
     return CCcontainer.size();
 }
 
-/* iterate - with an iterator - though your container of connected
-components and filter out (remove) all the components which do not
-obey the size criteria pass as arguments. The number remaining
-after this operation should be returned.
+/** iterate - with an iterator - though your container of connected components and filter out (remove) all the components
+which do not obey the size criteria pass as arguments. The number remaining after this operation should be returned.
 */
 int PGMIP::filterComponentsBySize(int minSize, int maxSize)
 {
-    std::cout << "Filtering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
     using namespace std;
-    vector<pair<shared_ptr<ConnectedComponent>,
-                unsigned char>>::iterator it = CCcontainer.begin();
+    vector<shared_ptr<ConnectedComponent>>::iterator it = CCcontainer.begin();
     while (it < CCcontainer.end())
     {
-        int numPixels = it->first->getNumPixels();
+        int numPixels = it->get()->getNumPixels();
         if (numPixels < minSize || numPixels > maxSize)
         {
             CCcontainer.erase(it);
@@ -234,7 +210,7 @@ int PGMIP::getLargestSize(void) const
     int largest = 0;
     for (int k = 0; k < CCcontainer.size(); ++k)
     {
-        int num = CCcontainer[k].first->getNumPixels();
+        int num = CCcontainer[k]->getNumPixels();
 
         if (num > largest)
         {
@@ -250,7 +226,7 @@ int PGMIP::getSmallestSize(void) const
     int smallest = 10000;
     for (int k = 0; k < CCcontainer.size(); ++k)
     {
-        int num = CCcontainer[k].first->getNumPixels();
+        int num = CCcontainer[k]->getNumPixels();
 
         if (num < smallest)
         {
@@ -267,12 +243,12 @@ bool PGMIP::setComponentsToArray()
 {
     for (int k = 0; k < CCcontainer.size(); ++k)
     {
-        int compSize = CCcontainer[k].first->getNumPixels();
+        int compSize = CCcontainer[k]->getNumPixels();
 
         for (int l = 0; l < compSize; ++l)
         {
-            int x = CCcontainer[k].first->getX(l);
-            int y = CCcontainer[k].first->getY(l);
+            int x = CCcontainer[k]->getX(l);
+            int y = CCcontainer[k]->getY(l);
 
             pixels[y][x] = white;
             // std::cout << "("  << y << "," << x << ")" << std::endl;
@@ -281,9 +257,8 @@ bool PGMIP::setComponentsToArray()
     return true;
 }
 
-/* create a new PGM file which contains all current components
-(255=component pixel, 0 otherwise) and write this to outFileName as a
-valid PGM. the return value indicates success of operation
+/* create a new PGM file which contains all current components (255=component pixel, 0 otherwise)
+and write this to outFileName as a valid PGM. the return value indicates success of operation
 */
 bool PGMIP::writeComponents(const std::string &outFileName)
 {
@@ -322,8 +297,8 @@ void PGMIP::printAll() const
 {
     for (auto i : CCcontainer)
     {
-        std::cout << "Pixel value: " << (0 + i.second) << std::endl;
-        printComponentData(*i.first);
+        std::cout << "Pixel value: " << (0 + i->pixel_value) << std::endl;
+        printComponentData(*i);
         std::cout << std::endl;
     }
 }
@@ -340,4 +315,13 @@ void PGMIP::printComponentData(const ConnectedComponent &theComponent) const
     {
         std::cout << "(y , x) = (" << theComponent.getY(i) << "," << theComponent.getX(i) << ")" << std::endl;
     }*/
+}
+
+void NDLMDU011::clearArray(unsigned char **arr, int height)
+{
+    for (int i = 0; i < height; ++i)
+    {
+        delete[] arr[i];
+    }
+    delete[] arr;
 }
