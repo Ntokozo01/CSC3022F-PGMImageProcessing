@@ -1,5 +1,6 @@
 #include "PGMimageProcessor.h"
 #include "ConnectedComponent.h"
+#include "PGMimageProcessor.cpp"
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include <string>
@@ -59,7 +60,7 @@ TEST_CASE("TEST WRITING TEST IMAGE")
 
 TEST_CASE("TESTING READ IMAGE METHOD")
 {
-    PGMimageProcessor imageProcessor(filename);
+    PGMimageProcessor<unsigned char> imageProcessor(filename);
     bool is_read = imageProcessor.readPGMImage();
 
     REQUIRE(is_read == true);
@@ -81,7 +82,7 @@ TEST_CASE("EXTRACTING COMPONENTS")
 
     SECTION("EXTRACT_METHOD_0")
     {
-        PGMimageProcessor imageProcessor(blocks_name);
+        PGMimageProcessor<unsigned char> imageProcessor(blocks_name);
         REQUIRE(imageProcessor.readPGMImage() == true);
         unsigned char threshold = 100; // smallest threshold
         int validSize = 1;
@@ -104,11 +105,11 @@ TEST_CASE("EXTRACTING COMPONENTS")
     }
 
     /*
-      Pawn = red = 4349		    pixel = 130
-      Castle = green = 6553		pixel = 220
-      Knight = blue = 8028		pixel = 70
+      Pawn = red = 4349		        pixel = 130
+      Castle = green = 6553		    pixel = 220
+      Knight = blue = 8028		    pixel = 70
       Bishop = magenta = 5793		pixel = 145
-      Queen = yellow = 7137		pixel = 248
+      Queen = yellow = 7137		    pixel = 248
       King = cyan = 7640		    pixel = 228
   */
     int const size = 6;
@@ -117,7 +118,7 @@ TEST_CASE("EXTRACTING COMPONENTS")
 
     SECTION("EXTRACT_METHOD_2")
     {
-        PGMimageProcessor imageProcessor(filename);
+        PGMimageProcessor<unsigned char> imageProcessor(filename);
         imageProcessor.readPGMImage();
         unsigned char threshold = 70; // smallest threshold
         int validSize = 1;
@@ -140,7 +141,7 @@ TEST_CASE("EXTRACTING COMPONENTS")
 
     SECTION("FLOODFILL_METHOD")
     {
-        PGMimageProcessor imageProcessor(blocks_name);
+        PGMimageProcessor<unsigned char> imageProcessor(blocks_name);
         REQUIRE(imageProcessor.readPGMImage() == true);
 
         unsigned char **test_arr = imageProcessor.getPixelsArr();
@@ -175,7 +176,12 @@ TEST_CASE("EXTRACTING COMPONENTS")
         REQUIRE_THROWS(cc2->getY(7));
 
         //PGMimageProcessor imageProcessor2(blocks_name);
+
+        for (int i = 0; i < height; ++i){
+            delete[] test_arr[i];
+        }
+        delete[] test_arr;
     }
 
-    
+
 }

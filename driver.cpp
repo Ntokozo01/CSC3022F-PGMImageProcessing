@@ -1,4 +1,5 @@
 #include "PGMimageProcessor.h"
+#include "PGMimageProcessor.cpp"
 #include <iostream>
 #include <string>
 
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
     std::cout << "Threshold: " << threshold << std::endl;
     std::cout << "Print components data?: " << bprintComponents << std::endl;
 
-    NDLMDU011::PGMimageProcessor *imageProcessor = new NDLMDU011::PGMimageProcessor(inputImageFile);
+    NDLMDU011::PGMimageProcessor<unsigned char> *imageProcessor = new NDLMDU011::PGMimageProcessor<unsigned char>(inputImageFile);
     bool image_read = imageProcessor->readPGMImage();
     if (!image_read)
     {
