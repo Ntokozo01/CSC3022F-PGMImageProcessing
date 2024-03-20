@@ -95,25 +95,114 @@ namespace NDLMDU011
     void PGMIP::floodFill(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc, int y, int x, T source, const T seen, const T threshold)
     {
         // Condition for checking out of bounds on pixels array then checks this next pixels to add is part of component
-        if ((y < 0 || y >= imageHeight) || (x < 0) || (x >= imageWidth) || (pixels_arr[y][x] != source))
+        if ((y >= 0) && (y < imageHeight) && (x >= 0) && (x < imageWidth) && (pixels_arr[y][x] == source))
         {
-            return;
+
+            //  Change the value of this pixel value to be identified as "seen" or processed
+            pixels_arr[y][x] = seen;
+
+            // From above this pixel is of a connected component, so add its coordinates with the mates
+            cc->addCoords(x, y);
+            // std::cout << " added coordinates to component" << std::endl;
+
+            floodFill(pixels_arr, cc, y - 1, x, source, seen, threshold); // Visit the North pixel
+
+            floodFill(pixels_arr, cc, y + 1, x, source, seen, threshold); // Visit the South pixel
+
+            floodFill(pixels_arr, cc, y, x + 1, source, seen, threshold); // Visit the East pixel
+
+            floodFill(pixels_arr, cc, y, x - 1, source, seen, threshold); // Visit the West pixel
         }
+    }
 
-        //  Change the value of this pixel value to be identified as "seen" or processed
+    template <typename T>
+    bool PGMIP::isValid(T **&pixels_Arr, int width, int height, int x, int y,
+                        T source, T seen)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height)
+            return false;
+
+        if (pixels_Arr[y][x] != source || pixels_Arr[y][x] == seen)
+            return false;
+
+        return true;
+    }
+
+    // FloodFill function
+    template <typename T>
+    void PGMIP::floodFillLooping(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc, int width, int height, int x, int y,
+                                 T source, T seen)
+    {
+        using namespace std;
+
+        //std::cout << "x: " << x << " y: " << y << " source: " << source << " seen: " << seen << std::endl;
+        queue<pair<int, int>> q;
+
+        // Append the position of starting
+        // pixel of the component
+        pair<int, int> p(x, y);
+        q.push(p);
+
+        // Color the pixel with the new color
         pixels_arr[y][x] = seen;
-
-        // From above this pixel is of a connected component, so add its coordinates with the mates
         cc->addCoords(x, y);
-        // std::cout << " added coordinates to component" << std::endl;
 
-        floodFill(pixels_arr, cc, y - 1, x, source, seen, threshold); // Visit the North pixel
+        // While the queue is not empty i.e. the
+        // whole component having source color
+        // is not colored with seen color
+        while (q.size() > 0)
+        {
+            // Dequeue the front node
+            pair<int, int> currPixel = q.front();
+            q.pop();
 
-        floodFill(pixels_arr, cc, y + 1, x, source, seen, threshold); // Visit the South pixel
+            int x_coord = currPixel.first;
+            int y_coord = currPixel.second;
 
-        floodFill(pixels_arr, cc, y, x + 1, source, seen, threshold); // Visit the East pixel
+            // Check if the adjacent
+            // pixels are valid
+            if (isValid(pixels_arr, width, height, x_coord, y_coord + 1, source,
+                        seen))
+            {
+                // Color with seen
+                // if valid and enqueue
+                pixels_arr[y_coord + 1][x_coord] = seen;
+                p.first = x_coord;
+                p.second = y_coord + 1;
+                cc->addCoords(p);
+                q.push(p);
+            }
 
-        floodFill(pixels_arr, cc, y, x - 1, source, seen, threshold); // Visit the West pixel
+            if (isValid(pixels_arr, width, height, x_coord, y_coord - 1, source,
+                        seen))
+            {
+                pixels_arr[y_coord - 1][x_coord] = seen;
+                p.first = x_coord;
+                p.second = y_coord - 1;
+                cc->addCoords(p);
+                q.push(p);
+            }
+
+            if (isValid(pixels_arr, width, height, x_coord - 1, y_coord, source,
+                        seen))
+            {
+                pixels_arr[y_coord][x_coord - 1] = seen;
+                p.first = x_coord - 1;
+                p.second = y_coord;
+                cc->addCoords(p);
+                q.push(p);
+            }
+
+            if (isValid(pixels_arr, width, height, x_coord + 1, y_coord, source,
+                        seen))
+            {
+                pixels_arr[y_coord][x_coord + 1] = seen;
+                p.first = x_coord + 1;
+                p.second = y_coord;
+                cc->addCoords(p);
+                q.push(p);
+            }
+        }
     }
 
     /* process the input image to extract all the connected components, based on the supplied threshold (0...255)
@@ -123,8 +212,6 @@ namespace NDLMDU011
     template <typename T>
     int PGMIP::extractComponents(T threshold, int minValidSize)
     {
-        // std::cout << "Extracting Components from image file ..." << std::endl;
-
         int y = 0;
         int x = 0;
 
@@ -157,18 +244,17 @@ namespace NDLMDU011
             queue.pop();
 
             // pixel value for this popped pixel in the queue
-            unsigned char source = pixels[coordinates.second][coordinates.first];
+            T source = pixels[coordinates.second][coordinates.first];
 
             // If the pixel value is above mininmum valid pixel value (or not been processed) use flood fill algorithm to get
             // its pixel neighbours thus identifying a component and adding it to the Container
             if (source > seen)
             {
-                // std::cout << "(" << coordinates.second << ", " << coordinates.first << ")  pixel: " << (0 + pixels[coordinates.second][coordinates.first]);
-                // std::cout << " queue size: " << queue.size() << std::endl;
                 std::shared_ptr<ConnectedComponent> cc(new ConnectedComponent(0, CCcontainer.size()));
-                cc->pixel_value = pixels[coordinates.second][coordinates.first];
+                cc->pixel_value = source;
 
-                floodFill(pixels, cc, coordinates.second, coordinates.first, source, seen, threshold);
+                // floodFill(pixels, cc, coordinates.second, coordinates.first, source, seen, threshold);
+                floodFillLooping(pixels, cc, imageWidth, imageHeight, coordinates.first, coordinates.second, source, seen);
 
                 if (cc->getNumPixels() >= minValidSize)
                 {
@@ -270,7 +356,7 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::writeComponents(const std::string &outFileName)
     {
-        //std::cout << "Writing to file " << std::endl;
+        // std::cout << "Writing to file " << std::endl;
         std::ofstream outfile(outFileName, std::ofstream::binary);
 
         // Write the header information of the .pgm file

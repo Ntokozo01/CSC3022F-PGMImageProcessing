@@ -34,6 +34,12 @@ namespace NDLMDU011
 
         bool readPGMImage(void);
 
+        bool isValid(T **&pixels_Arr, int width, int height, int x, int y,
+                     T prevC, T newC);
+
+        void floodFillLooping(T **&screen, std::shared_ptr<ConnectedComponent> &cc, int width, int height, int x, int y,
+                              T prevC, T newC);
+
         void floodFill(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc,
                        int y, int x, T source, const T seen, const T threshold);
 

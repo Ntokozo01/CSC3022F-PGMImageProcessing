@@ -24,6 +24,11 @@ void CC::addCoords(int x, int y)
     numPixels = pixelCoords.size();
 }
 
+void CC::addCoords(std::pair<int, int> coords_pair){
+    pixelCoords.push_back(coords_pair);
+    numPixels = pixelCoords.size();
+}
+
 int CC::getX(int index) const
 {
     return pixelCoords.at(index).first;

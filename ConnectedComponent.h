@@ -41,6 +41,8 @@ namespace NDLMDU011
         /// @param y vertical coord of the pixel in input image
         void addCoords(int x, int y);
 
+        void addCoords(std::pair<int, int> pair);
+
         /// @brief returns the x value of the coordinate at specified index
         /// @param index of the pair in the vector container
         /// @return x value coordinate

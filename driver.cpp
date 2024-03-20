@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
               << std::endl
               << std::endl;
 
+    std::cout << "Extracting Components ..." << std::endl;
     imageProcessor->extractComponents(threshold, minSize);
     std::cout << "Number of connected components (unfiltered): " << imageProcessor->getComponentCount() << std::endl;
 
