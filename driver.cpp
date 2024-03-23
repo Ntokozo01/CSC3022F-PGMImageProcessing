@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
 
         NDLMDU011::PGMimageProcessor<unsigned char> *imageProcessor = new NDLMDU011::PGMimageProcessor<unsigned char>(inputImageFile);
 
+        std::cout << "Reading Image..." << std::endl;
         bool image_read = imageProcessor->readPGMImage();
 
         if (!image_read)
@@ -97,39 +98,11 @@ int main(int argc, char *argv[])
             std::cerr << "File Not Found." << std::endl;
             return 1;
         }
-
-        imageProcessor->extractComponents(threshold, minSize);
-
-        if (bwriteComponents)
-        {
-            std::cout << "\nWriting.. Connected components to PGM Image file " << std::endl;
-            bool done = imageProcessor->writeComponents(outImageFile);
-
-            int ans = imageProcessor->getLargestSize();
-            std::cout << "The largest Connected Component has " << ans << " pixels." << std::endl;
-
-            ans = imageProcessor->getSmallestSize();
-            std::cout << "Smallest Connected Component has " << ans << " pixels." << std::endl;
-            imageProcessor->printAll();
-        }
-
-        delete imageProcessor;
-    }
-    else if (imageType == "ppm")
-    {
-        NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel> *imageProcessor = new NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel>(inputImageFile);
-
-        bool image_read = imageProcessor->readPGMImage();
-
-        if (!image_read)
-        {
-            std::cerr << "File Not Found." << std::endl;
-            return 1;
-        }
+        std::cout << "Image read successfully." << std::endl;
 
         std::cout << "\nExtracting Components ..." << std::endl;
         int num_comp = imageProcessor->extractComponents(threshold, minSize);
-        std::cout << "Number of connected components (unfiltered): " << num_comp<< std::endl;
+        std::cout << "Number of connected components (unfiltered): " << num_comp << std::endl;
 
         if (bwriteComponents)
         {
@@ -142,7 +115,6 @@ int main(int argc, char *argv[])
             std::cout << "\nFiltering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
             int size = imageProcessor->filterComponentsBySize(minSize, maxSize);
             std::cout << "Number of connected components (filtered): " << size << std::endl;
-            
         }
 
         if (bprintComponents)
@@ -169,10 +141,61 @@ int main(int argc, char *argv[])
 
         delete imageProcessor;
     }
+    else if (imageType == "ppm")
+    {
+        NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel> *imageProcessor = new NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel>(inputImageFile);
 
-    std::cout << "Image read successfully."
-              << std::endl
-              << std::endl;
+        std::cout << "Reading Image..." << std::endl;
+        bool image_read = imageProcessor->readPGMImage();
+
+        if (!image_read)
+        {
+            std::cerr << "File Not Found." << std::endl;
+            return 1;
+        }
+        std::cout << "Image read successfully." << std::endl;
+
+        std::cout << "\nExtracting Components ..." << std::endl;
+        int num_comp = imageProcessor->extractComponents(threshold, minSize);
+        std::cout << "Number of connected components (unfiltered): " << num_comp << std::endl;
+
+        if (bwriteComponents)
+        {
+            std::cout << "\nWriting.. Connected components to PGM Image file " << std::endl;
+            bool done = imageProcessor->writeComponents(outImageFile);
+        }
+
+        if (bfilter)
+        {
+            std::cout << "\nFiltering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
+            int size = imageProcessor->filterComponentsBySize(minSize, maxSize);
+            std::cout << "Number of connected components (filtered): " << size << std::endl;
+        }
+
+        if (bprintComponents)
+        {
+            std::cout << "\nPrinting out Component Data..." << std::endl;
+            imageProcessor->printAll();
+
+            std::cout << "Number of connected components: " << imageProcessor->getComponentCount() << std::endl;
+
+            int ans = imageProcessor->getLargestSize();
+            std::cout << "The largest Connected Component has " << ans << " pixels." << std::endl;
+
+            ans = imageProcessor->getSmallestSize();
+            std::cout << "Smallest Connected Component has " << ans << " pixels." << std::endl;
+        }
+
+        if (bWritePPM)
+        {
+            std::cout << "\nWriting out a PPM image with bounded boxes.." << std::endl;
+            imageProcessor->addBoundingBoxes();
+            imageProcessor->writePPMComponents(outputPPM);
+            std::cout << "PPM Image written out" << std::endl;
+        }
+
+        delete imageProcessor;
+    }
 
     // NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel> imageProcessor2(inputImageFile);
 

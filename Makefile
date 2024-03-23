@@ -44,6 +44,5 @@ run: $(TARGET)
 
 # Clean target to clean all compiled object files and executable file and remove generated PGM images 
 clean:
-	rm -f $(OBJS) $(TARGET)
-	rm -f $(TEST_OBJS) $(TEST_TARGET)
+	rm *.o *.exe
 #	find . -type f -name '*.pgm' ! \( -name 'chess.pgm' -o -name 'cheetah.pgm' -o -name 'chess-thresh-separate.pgm' -o -name 'boundary.pgm' -o -name 'House.pgm' -o -name 'maize.pgm' -o -name 'camera-man.pgm' -o -name 'shapes.pgm' \) -exec rm {} +

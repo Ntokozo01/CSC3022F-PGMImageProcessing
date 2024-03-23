@@ -58,11 +58,23 @@ namespace NDLMDU011
     {
         // std::cout << "Destructor" << std::endl;
 
-        for (int i = 0; i < imageHeight; ++i)
+        if (pixels != nullptr)
         {
-            delete[] pixels[i];
+            for (int i = 0; i < imageHeight; ++i)
+            {
+                delete[] pixels[i];
+            }
+            delete[] pixels;
         }
-        delete[] pixels;
+
+        if (ppmArray != nullptr)
+        {
+            for (int i = 0; i < imageHeight; ++i)
+            {
+                delete[] ppmArray[i];
+            }
+            delete[] ppmArray;
+        }
     }
 
     template <typename T>
@@ -129,53 +141,19 @@ namespace NDLMDU011
     }
 
     template <typename T>
-    bool PGMIP::readPPMImage()
+    bool PGMIP::convertToPPMArray(void)
     {
-        // Read the PGM input image and save the data in the appropriate variables
-        std::ifstream file_reader(filename, std::fstream::binary);
 
-        if (!file_reader)
-            return false;
-
-        std::string line;
-        std::getline(file_reader, line); // get the Magic number of input image which is "P5"
-
-        // Read the next line and check if it is a comment line, repeats until the line read is not a comment
-        std::getline(file_reader, line);
-        while (line[0] == '#') // comment lines start with the character '#'
-        {
-            std::getline(file_reader, line);
-        }
-
-        // Next line after comments is the image dimensions line which is width and height, extracts it from the line
-        std::istringstream iss(line);
-        iss >> imageWidth >> imageHeight;
-
-        std::getline(file_reader, line); // get the maximum value of the pixels in this image data usually 255
-
-        pixels = new T *[imageHeight];
-        // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
-        PPMpixel p;
-        counter = 0;
+        ppmArray = new PPMpixel *[imageHeight];
         for (int i = 0; i < imageHeight; ++i)
         {
-            pixels[i] = new T[imageWidth];
+            ppmArray[i] = new PPMpixel[imageWidth];
             for (int j = 0; j < imageWidth; ++j)
             {
-                counter++;
-                // file_reader.read(&p, 1);
-
-                file_reader >> p.red >> p.green >> p.blue;
-                T I = 0.299 * p.red + 0.587 * p.green + 0.114 * p.blue;
-                // T p(red, green, blue);
-                pixels[i][j] = static_cast<T>(I);
-
-                // std::cout << (0 + pixels[i][j].red) << "|" << (0 + pixels[i][j].green) << "|" << (0 + pixels[i][j].blue) << " ";
+                ppmArray[i][j] = (PPMpixel)pixels[i][j];
             }
-            // std::cout << std::endl;
         }
-        bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
-        return image_read;
+        return true;
     }
 
     template <typename T>
@@ -195,31 +173,6 @@ namespace NDLMDU011
         return arr;
     }
 
-    // Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
-    template <typename T>
-    void PGMIP::floodFill(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc, int y, int x, T source, const T seen, const T threshold)
-    {
-        // Condition for checking out of bounds on pixels array then checks this next pixels to add is part of component
-        if ((y >= 0) && (y < imageHeight) && (x >= 0) && (x < imageWidth) && (pixels_arr[y][x] == source))
-        {
-
-            //  Change the value of this pixel value to be identified as "seen" or processed
-            pixels_arr[y][x] = seen;
-
-            // From above this pixel is of a connected component, so add its coordinates with the mates
-            cc->addCoords(x, y);
-            // std::cout << " added coordinates to component" << std::endl;
-
-            floodFill(pixels_arr, cc, y - 1, x, source, seen, threshold); // Visit the North pixel
-
-            floodFill(pixels_arr, cc, y + 1, x, source, seen, threshold); // Visit the South pixel
-
-            floodFill(pixels_arr, cc, y, x + 1, source, seen, threshold); // Visit the East pixel
-
-            floodFill(pixels_arr, cc, y, x - 1, source, seen, threshold); // Visit the West pixel
-        }
-    }
-
     template <typename T>
     bool PGMIP::isValid(T **&pixels_Arr, int width, int height, int x, int y,
                         T source, T seen)
@@ -233,7 +186,7 @@ namespace NDLMDU011
         return true;
     }
 
-    // FloodFill function
+    // Flood fill algorithm to determine the coordinates of pixels for the passed Connected Component
     template <typename T>
     void PGMIP::floodFillLooping(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc, int width, int height, int x, int y,
                                  T source, T seen)
@@ -461,11 +414,13 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::writeComponents(const std::string &outFileName)
     {
-        // std::cout << "Writing to file " << std::endl;
+        int period = outFileName.find_last_of(".");
+        std::string imageType = outFileName.substr(period + 1);
+
         std::ofstream outfile(outFileName, std::ofstream::binary);
 
         // Write the header information of the .pgm file
-        if (sizeof(T) == 3)
+        if (imageType == "ppm")
         {
             outfile << "P6" << std::endl;
         }
@@ -473,7 +428,7 @@ namespace NDLMDU011
         {
             outfile << "P5" << std::endl;
         }
-        
+
         outfile << imageWidth << " " << imageHeight << std::endl;
         outfile << 255 << std::endl;
 
@@ -490,8 +445,8 @@ namespace NDLMDU011
                     pixels[i][j] = black;
                 }
 
-                // outfile.write((char *)&pixels[i][j], 1);
-                outfile << pixels[i][j];
+                unsigned char pix = (unsigned char) pixels[i][j]; 
+                outfile << pix;
                 // std::cout << (0 + pixels[i][j]) << " ";
             }
             // std::cout << std::endl;
@@ -500,10 +455,11 @@ namespace NDLMDU011
         return true;
     }
 
-    template <>
-    bool PGMimageProcessor<PPMpixel>::addBoundingBoxes(void)
+    template <typename T>
+    bool PGMIP::addBoundingBoxes(void)
     {
         readPGMImage();
+        convertToPPMArray();
 
         PPMpixel red(255, 0, 0);
 
@@ -519,13 +475,13 @@ namespace NDLMDU011
                 {
                     for (int x = start_coords.first; x <= end_coords.first; ++x)
                     {
-                        pixels[y][x] = red;
+                        ppmArray[y][x] = red;
                     }
                 }
                 else
                 {
-                    pixels[y][start_coords.first] = red;
-                    pixels[y][end_coords.first] = red;
+                    ppmArray[y][start_coords.first] = red;
+                    ppmArray[y][end_coords.first] = red;
                 }
                 y++;
             }
@@ -533,8 +489,8 @@ namespace NDLMDU011
         return true;
     }
 
-    template <>
-    bool PGMimageProcessor<PPMpixel>::writePPMComponents(const std::string &outFileName)
+    template <typename T>
+    bool PGMIP::writePPMComponents(const std::string &outFileName)
     {
         // std::cout << "Writing to file " << std::endl;
         std::ofstream outfile(outFileName, std::ofstream::binary);
@@ -544,15 +500,16 @@ namespace NDLMDU011
         outfile << imageWidth << " " << imageHeight << std::endl;
         outfile << 255 << std::endl;
 
-        // add components data to array
-        // if (!setComponentsToArray())
-        //    return false;
+        if (!addBoundingBoxes())
+        {
+            return false;
+        }
 
         for (int i = 0; i < imageHeight; ++i)
         {
             for (int j = 0; j < imageWidth; ++j)
             {
-                PPMpixel ppm_pix = (PPMpixel)pixels[i][j];
+                PPMpixel ppm_pix = (PPMpixel)ppmArray[i][j];
 
                 outfile << ppm_pix.red << ppm_pix.green << ppm_pix.blue;
                 //  std::cout << (0 + pixels[i][j]) << " ";

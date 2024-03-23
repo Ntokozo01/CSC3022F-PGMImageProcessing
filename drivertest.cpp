@@ -1,6 +1,5 @@
 #include "PGMimageProcessor.h"
 #include "ConnectedComponent.h"
-#include "PGMimageProcessor.cpp"
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include <string>
@@ -166,7 +165,7 @@ TEST_CASE("EXTRACTING COMPONENTS")
         x = 0;
         y = 1;
         std::shared_ptr<ConnectedComponent> cc2(new ConnectedComponent(0, 1));
-        imageProcessor.floodFill(test_arr, cc2, y, x, source, seen, threshold);
+        imageProcessor.floodFillLooping(test_arr, cc2,width,height, x, y, source, seen);
         REQUIRE(cc2->getNumPixels() == 7);
         REQUIRE(cc2.use_count() == 1);
         REQUIRE(cc2->getID() == 1); 

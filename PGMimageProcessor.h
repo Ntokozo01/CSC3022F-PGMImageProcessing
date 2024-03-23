@@ -36,7 +36,8 @@ namespace NDLMDU011
         int imageWidth;
 
         // 2D array for input/output image pixels data
-        T **pixels;
+        T **pixels = nullptr;
+        PPMpixel **ppmArray = nullptr;
         // Container for connected components pairwise with its pixel value
         std::vector<std::shared_ptr<ConnectedComponent>> CCcontainer;
 
@@ -52,16 +53,14 @@ namespace NDLMDU011
         ~PGMimageProcessor();
 
         bool readPGMImage(void);
-        bool readPPMImage(void);
+
+        bool convertToPPMArray(void);
 
         bool isValid(T **&pixels_Arr, int width, int height, int x, int y,
                      T prevC, T newC);
 
         void floodFillLooping(T **&screen, std::shared_ptr<ConnectedComponent> &cc, int width, int height, int x, int y,
                               T prevC, T newC);
-
-        void floodFill(T **&pixels_arr, std::shared_ptr<ConnectedComponent> &cc,
-                       int y, int x, T source, const T seen, const T threshold);
 
         int extractComponents(T threshold, int minValidSize);
 
@@ -92,11 +91,11 @@ namespace NDLMDU011
         void initialiseArray(T **&arr, int height, int width);
     };
 
-    template <>
-    bool PGMimageProcessor<PPMpixel>::writePPMComponents(const std::string &outFileName);
+    //template <>
+    //bool PGMimageProcessor<PPMpixel>::writePPMComponents(const std::string &outFileName);
 
-    template <>
-    bool PGMimageProcessor<PPMpixel>::addBoundingBoxes(void);
+    //template <>
+    //bool PGMimageProcessor<PPMpixel>::addBoundingBoxes(void);
 }
 
 #endif
