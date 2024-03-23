@@ -58,6 +58,9 @@ namespace NDLMDU011
         // returns the integer ID of this ConnectedComponent
         int getID() const { return compID; }
 
+        std::pair<int,int> getMinXY(void);
+        std::pair<int,int> getMaxXY(void);
+
         unsigned char getPixelValue(void) const { return pixel_value; }
     };
 }

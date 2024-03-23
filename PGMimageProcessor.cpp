@@ -12,6 +12,43 @@
 
 namespace NDLMDU011
 {
+    template class PGMimageProcessor<unsigned char>;
+    template class PGMimageProcessor<PPMpixel>;
+
+    PPMpixel::PPMpixel()
+    {
+        red = green = blue = 0;
+    }
+
+    PPMpixel::PPMpixel(unsigned char Red, unsigned char Green, unsigned char Blue)
+    {
+        red = Red;
+        green = Green;
+        blue = Blue;
+    }
+
+    PPMpixel::PPMpixel(int value)
+    {
+        red = blue = green = value;
+    }
+
+    PPMpixel::operator unsigned char()
+    {
+        return 0.299 * red + 0.587 * green + 0.114 * blue;
+    }
+
+    std::ifstream &operator>>(std::ifstream &file_read, PPMpixel &ppm)
+    {
+        file_read >> ppm.red >> ppm.green >> ppm.blue;
+        return file_read;
+    }
+
+    std::ofstream &operator<<(std::ofstream &file_out, PPMpixel &ppm)
+    {
+        file_out << ppm.red << ppm.green << ppm.blue;
+        return file_out;
+    }
+
     // Custom constructor
     template <typename T>
     PGMIP::PGMimageProcessor(std::string fname) : filename(fname), imageHeight(0), imageWidth(0) {}
@@ -26,6 +63,19 @@ namespace NDLMDU011
             delete[] pixels[i];
         }
         delete[] pixels;
+    }
+
+    template <typename T>
+    void PGMIP::initialiseArray(T **&arr, int height, int width)
+    {
+        if (arr == nullptr)
+        {
+            arr = new T *[height];
+            for (int i = 0; i < height; ++i)
+            {
+                arr[i] = new T[width];
+            }
+        }
     }
 
     template <typename T>
@@ -53,19 +103,74 @@ namespace NDLMDU011
 
         std::getline(file_reader, line); // get the maximum value of the pixels in this image data usually 255
 
-        pixels = new unsigned char *[imageHeight];
+        // pixels = new T *[imageHeight];
+        initialiseArray(pixels, imageHeight, imageWidth);
         // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
-        char p;
+        T p;
         counter = 0;
         for (int i = 0; i < imageHeight; ++i)
         {
-            pixels[i] = new unsigned char[imageWidth];
+            // pixels[i] = new T[imageWidth];
             for (int j = 0; j < imageWidth; ++j)
             {
                 counter++;
-                file_reader.read(&p, 1);
-                pixels[i][j] = static_cast<unsigned char>(p);
+                // if (sizeof(T) == 3){}
+                //  file_reader.read(&p, 1);
+                file_reader >> p;
+                // pixels[i][j] = static_cast<T>(p);
+                pixels[i][j] = p;
+
                 // std::cout << (0 + pixels[i][j]) << " ";
+            }
+            // std::cout << std::endl;
+        }
+        bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
+        return image_read;
+    }
+
+    template <typename T>
+    bool PGMIP::readPPMImage()
+    {
+        // Read the PGM input image and save the data in the appropriate variables
+        std::ifstream file_reader(filename, std::fstream::binary);
+
+        if (!file_reader)
+            return false;
+
+        std::string line;
+        std::getline(file_reader, line); // get the Magic number of input image which is "P5"
+
+        // Read the next line and check if it is a comment line, repeats until the line read is not a comment
+        std::getline(file_reader, line);
+        while (line[0] == '#') // comment lines start with the character '#'
+        {
+            std::getline(file_reader, line);
+        }
+
+        // Next line after comments is the image dimensions line which is width and height, extracts it from the line
+        std::istringstream iss(line);
+        iss >> imageWidth >> imageHeight;
+
+        std::getline(file_reader, line); // get the maximum value of the pixels in this image data usually 255
+
+        pixels = new T *[imageHeight];
+        // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
+        PPMpixel p;
+        counter = 0;
+        for (int i = 0; i < imageHeight; ++i)
+        {
+            pixels[i] = new T[imageWidth];
+            for (int j = 0; j < imageWidth; ++j)
+            {
+                counter++;
+                // file_reader.read(&p, 1);
+
+                file_reader >> p.red >> p.green >> p.blue;
+                T I = 0.299 * p.red + 0.587 * p.green + 0.114 * p.blue;
+                // T p(red, green, blue);
+                pixels[i][j] = static_cast<T>(I);
+
+                // std::cout << (0 + pixels[i][j].red) << "|" << (0 + pixels[i][j].green) << "|" << (0 + pixels[i][j].blue) << " ";
             }
             // std::cout << std::endl;
         }
@@ -135,7 +240,7 @@ namespace NDLMDU011
     {
         using namespace std;
 
-        //std::cout << "x: " << x << " y: " << y << " source: " << source << " seen: " << seen << std::endl;
+        // std::cout << "x: " << x << " y: " << y << " source: " << source << " seen: " << seen << std::endl;
         queue<pair<int, int>> q;
 
         // Append the position of starting
@@ -360,7 +465,15 @@ namespace NDLMDU011
         std::ofstream outfile(outFileName, std::ofstream::binary);
 
         // Write the header information of the .pgm file
-        outfile << "P5" << std::endl;
+        if (sizeof(T) == 3)
+        {
+            outfile << "P6" << std::endl;
+        }
+        else
+        {
+            outfile << "P5" << std::endl;
+        }
+        
         outfile << imageWidth << " " << imageHeight << std::endl;
         outfile << 255 << std::endl;
 
@@ -377,8 +490,72 @@ namespace NDLMDU011
                     pixels[i][j] = black;
                 }
 
-                outfile.write((char *)&pixels[i][j], 1);
+                // outfile.write((char *)&pixels[i][j], 1);
+                outfile << pixels[i][j];
                 // std::cout << (0 + pixels[i][j]) << " ";
+            }
+            // std::cout << std::endl;
+        }
+
+        return true;
+    }
+
+    template <>
+    bool PGMimageProcessor<PPMpixel>::addBoundingBoxes(void)
+    {
+        readPGMImage();
+
+        PPMpixel red(255, 0, 0);
+
+        for (int k = 0; k < CCcontainer.size(); ++k)
+        {
+            std::pair<int, int> start_coords = CCcontainer[k]->getMinXY();
+            std::pair<int, int> end_coords = CCcontainer[k]->getMaxXY();
+
+            int y = start_coords.second;
+            while (y <= end_coords.second)
+            {
+                if (y == start_coords.second || y == end_coords.second)
+                {
+                    for (int x = start_coords.first; x <= end_coords.first; ++x)
+                    {
+                        pixels[y][x] = red;
+                    }
+                }
+                else
+                {
+                    pixels[y][start_coords.first] = red;
+                    pixels[y][end_coords.first] = red;
+                }
+                y++;
+            }
+        }
+        return true;
+    }
+
+    template <>
+    bool PGMimageProcessor<PPMpixel>::writePPMComponents(const std::string &outFileName)
+    {
+        // std::cout << "Writing to file " << std::endl;
+        std::ofstream outfile(outFileName, std::ofstream::binary);
+
+        // Write the header information of the .pgm file
+        outfile << "P6" << std::endl;
+        outfile << imageWidth << " " << imageHeight << std::endl;
+        outfile << 255 << std::endl;
+
+        // add components data to array
+        // if (!setComponentsToArray())
+        //    return false;
+
+        for (int i = 0; i < imageHeight; ++i)
+        {
+            for (int j = 0; j < imageWidth; ++j)
+            {
+                PPMpixel ppm_pix = (PPMpixel)pixels[i][j];
+
+                outfile << ppm_pix.red << ppm_pix.green << ppm_pix.blue;
+                //  std::cout << (0 + pixels[i][j]) << " ";
             }
             // std::cout << std::endl;
         }
@@ -413,13 +590,14 @@ namespace NDLMDU011
         }*/
     }
 
-    /*void clearArray(unsigned char **arr, int height)
+    template <typename T>
+    void PGMIP::clearArray(T **arr, int height)
     {
         for (int i = 0; i < height; ++i)
         {
             delete[] arr[i];
         }
         delete[] arr;
-    }*/
+    }
 
 }

@@ -24,7 +24,8 @@ void CC::addCoords(int x, int y)
     numPixels = pixelCoords.size();
 }
 
-void CC::addCoords(std::pair<int, int> coords_pair){
+void CC::addCoords(std::pair<int, int> coords_pair)
+{
     pixelCoords.push_back(coords_pair);
     numPixels = pixelCoords.size();
 }
@@ -37,6 +38,47 @@ int CC::getX(int index) const
 int CC::getY(int index) const
 {
     return pixelCoords.at(index).second;
+}
+
+std::pair<int, int> CC::getMinXY(void)
+{
+    int minY = 1000000;
+    int minX = 1000000;
+
+    for (int i = 0; i < pixelCoords.size(); ++i)
+    {
+        if (pixelCoords[i].first < minX)
+        {
+            minX = pixelCoords[i].first;
+        }
+
+        if (pixelCoords[i].second < minY)
+        {
+            minY = pixelCoords[i].second;
+        }
+    }
+    std::pair<int, int> p(minX, minY);
+    return p;
+}
+std::pair<int, int> CC::getMaxXY(void)
+{
+    int maxY = 0;
+    int maxX = 0;
+
+    for (int i = 0; i < pixelCoords.size(); ++i)
+    {
+        if (pixelCoords[i].first > maxX)
+        {
+            maxX = pixelCoords[i].first;
+        }
+
+        if (pixelCoords[i].second > maxY)
+        {
+            maxY = pixelCoords[i].second;
+        }
+    }
+    std::pair<int, int> p(maxX, maxY);
+    return p;
 }
 
 // Copy constructor
@@ -57,12 +99,17 @@ CC::ConnectedComponent(CC &&cc) : compID(cc.compID), numPixels(cc.numPixels)
 }
 
 /// ConnectedComponent Copy Assignment operator
-CC &CC::operator=(const CC &rhs) {
-    if (this != &rhs){
+CC &CC::operator=(const CC &rhs)
+{
+    if (this != &rhs)
+    {
         compID = rhs.compID;
         numPixels = rhs.numPixels;
 
-        if (!pixelCoords.empty()) { pixelCoords.clear(); }
+        if (!pixelCoords.empty())
+        {
+            pixelCoords.clear();
+        }
 
         pixelCoords = rhs.pixelCoords;
     }
@@ -70,15 +117,20 @@ CC &CC::operator=(const CC &rhs) {
 }
 
 /// ConnectedComponent Move Assignment operator
-CC &CC::operator=(CC &&rhs) {
-    if (this != &rhs){
+CC &CC::operator=(CC &&rhs)
+{
+    if (this != &rhs)
+    {
         compID = rhs.compID;
         numPixels = rhs.numPixels;
 
-        if (!pixelCoords.empty()) { pixelCoords.clear(); }
-        
+        if (!pixelCoords.empty())
+        {
+            pixelCoords.clear();
+        }
+
         pixelCoords = rhs.pixelCoords;
-    
+
         rhs.compID = -1;
         rhs.numPixels = 0;
         rhs.pixelCoords.clear();

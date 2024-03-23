@@ -157,7 +157,7 @@ TEST_CASE("EXTRACTING COMPONENTS")
         unsigned char seen = 0;
 
         std::shared_ptr<ConnectedComponent> cc1(new ConnectedComponent(0, 0));
-        imageProcessor.floodFill(test_arr, cc1, y, x, source, seen, threshold);
+        imageProcessor.floodFillLooping(test_arr, cc1, width, height, x, y, source, seen);
         REQUIRE(cc1->getNumPixels() == 10);
         REQUIRE(cc1.use_count() == 1);
         REQUIRE((*cc1).getID() == 0);
@@ -169,19 +169,18 @@ TEST_CASE("EXTRACTING COMPONENTS")
         imageProcessor.floodFill(test_arr, cc2, y, x, source, seen, threshold);
         REQUIRE(cc2->getNumPixels() == 7);
         REQUIRE(cc2.use_count() == 1);
-        REQUIRE(cc2->getID() == 1);
+        REQUIRE(cc2->getID() == 1); 
         REQUIRE(cc2->getX(0) == x);
         REQUIRE(cc2->getY(0) == y);
         REQUIRE_THROWS(cc2->getX(7));
         REQUIRE_THROWS(cc2->getY(7));
 
-        //PGMimageProcessor imageProcessor2(blocks_name);
+        // PGMimageProcessor imageProcessor2(blocks_name);
 
-        for (int i = 0; i < height; ++i){
+        for (int i = 0; i < height; ++i)
+        {
             delete[] test_arr[i];
         }
         delete[] test_arr;
     }
-
-
 }

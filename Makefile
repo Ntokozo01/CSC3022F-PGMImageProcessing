@@ -11,7 +11,7 @@ TARGET = driver.exe
 TEST_TARGET = drivertest.exe
 
 # Source files
-SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp driver.cpp
+SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp driver.cpp ConnectedComponent.h PGMimageProcessor.h
 TEST_SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp drivertest.cpp
 
 # Object files

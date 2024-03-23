@@ -4,10 +4,29 @@
 #include "ConnectedComponent.h"
 #include <string>
 #include <memory>
-#define u_char unsigned char
+#include <fstream>
 
 namespace NDLMDU011
 {
+    struct PPMpixel
+    {
+        unsigned char red;
+        unsigned char green;
+        unsigned char blue;
+
+        PPMpixel();
+
+        PPMpixel(unsigned char Red, unsigned char Green, unsigned char Blue);
+
+        PPMpixel(int value);
+
+        operator unsigned char();
+    };
+
+    std::ifstream &operator>>(std::ifstream &file_read, PPMpixel &ppm);
+
+    std::ofstream &operator<<(std::ofstream &file_out, PPMpixel &ppm);
+
     template <typename T>
     class PGMimageProcessor
     {
@@ -23,9 +42,9 @@ namespace NDLMDU011
 
     public:
         int counter = 0;
-        T seen; // Minimum valid pixel value for components
-        T white;
-        T black;
+        T seen = 0; // Minimum valid pixel value for components
+        T white = 255;
+        T black = 0;
 
     public:
         PGMimageProcessor(std::string fname);
@@ -33,6 +52,7 @@ namespace NDLMDU011
         ~PGMimageProcessor();
 
         bool readPGMImage(void);
+        bool readPPMImage(void);
 
         bool isValid(T **&pixels_Arr, int width, int height, int x, int y,
                      T prevC, T newC);
@@ -51,6 +71,10 @@ namespace NDLMDU011
 
         bool writeComponents(const std::string &outFileName);
 
+        bool writePPMComponents(const std::string &outFileName);
+
+        bool addBoundingBoxes(void);
+
         int getComponentCount(void) const;
 
         int getLargestSize(void) const;
@@ -62,10 +86,17 @@ namespace NDLMDU011
         void printComponentData(const ConnectedComponent &theComponent) const;
 
         T **getPixelsArr() const;
+
+        void clearArray(T **arr, int height);
+
+        void initialiseArray(T **&arr, int height, int width);
     };
 
-    void clearArray(unsigned char **arr, int height);
+    template <>
+    bool PGMimageProcessor<PPMpixel>::writePPMComponents(const std::string &outFileName);
 
+    template <>
+    bool PGMimageProcessor<PPMpixel>::addBoundingBoxes(void);
 }
 
 #endif
