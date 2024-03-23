@@ -1,3 +1,9 @@
+
+/*
+     MDUDUZI NDLOVU - NDLMDU011
+    Connected Component header file
+ */
+
 #ifndef CONNECTED_COMPONENT_H
 #define CONNECTED_COMPONENT_H
 
@@ -15,7 +21,7 @@ namespace NDLMDU011
         std::vector<std::pair<int, int>> pixelCoords;
 
     public:
-        unsigned char pixel_value;
+        unsigned char pixel_value; // The pixel value of this connected component
 
         /// ConnectedComponent no-args constructor
         ConnectedComponent();
@@ -58,8 +64,13 @@ namespace NDLMDU011
         // returns the integer ID of this ConnectedComponent
         int getID() const { return compID; }
 
-        std::pair<int,int> getMinXY(void);
-        std::pair<int,int> getMaxXY(void);
+        // Returns the coordinates for minimum X and Y value as coordinate for starting position of
+        // the bounding box
+        std::pair<int, int> getMinXY(void);
+
+        // Returns the coordinates for maximum X and Y value as coordinate for ending position of
+        // the bounding box
+        std::pair<int, int> getMaxXY(void);
 
         unsigned char getPixelValue(void) const { return pixel_value; }
     };

@@ -1,11 +1,9 @@
 #include "PGMimageProcessor.h"
-// #include "PGMimageProcessor.cpp"
 #include <iostream>
 #include <string>
 
 int main(int argc, char *argv[])
 {
-
     int minSize = 3, maxSize = 100000000;
     int threshold, minValidSize = 1;
     std::string inputImageFile, outImageFile, outputPPM;
@@ -19,44 +17,48 @@ int main(int argc, char *argv[])
         int k = 0;
         while (k < argc)
         {
-            if (std::string(argv[k]) == "-s")
+            if (std::string(argv[k]) == "-s") // Flag to indicate to filter the components
             {
                 bfilter = true;
                 minSize = std::stoi(argv[++k]);
                 maxSize = std::stoi(argv[++k]);
+                minValidSize = minSize;
             }
-            else if (std::string(argv[k]) == "-t")
+            else if (std::string(argv[k]) == "-t") // Flag for the threshold value
             {
                 threshold = std::stoi(argv[++k]);
                 threshold = std::min(std::max(threshold, 0), 255); // Bound threshold between 0 and 255- both inclusive
             }
-            else if (std::string(argv[k]) == "-p")
+            else if (std::string(argv[k]) == "-p") // Flag indicating to print components data
             {
                 bprintComponents = true;
             }
-            else if (std::string(argv[k]) == "-w")
+            else if (std::string(argv[k]) == "-w") // Flag to indicate to write an output image
             {
                 bwriteComponents = true;
                 outImageFile = argv[++k];
 
                 int period = outImageFile.find_last_of(".");
-                if (period < 0)
+                if (period < 0) // Check whether an extension is included, if not included default to pgm
                 {
-                    outImageFile += ".pgm"; // outImageFile.substr(0,period);
+                    outImageFile += ".pgm"; 
                 }
             }
-            else if (std::string(argv[k]) == "-b")
+            else if (std::string(argv[k]) == "-b") // Flag to indicate to write a bounded boxed PPM for detected components
             {
                 bWritePPM = true;
                 outputPPM = argv[++k];
 
                 int period = outputPPM.find_last_of(".");
+                // The output image should be PPM, enforcing that
                 if (period < 0)
                 {
-                    outputPPM += ".ppm"; // outImageFile.substr(0,period);
+                    outputPPM += ".ppm"; 
+                } else {
+                    outputPPM = outputPPM.substr(0,period) +".ppm";
                 }
             }
-            else
+            else // The argument as the input inpu file name
             {
                 inputImageFile = argv[argc - 1];
                 int period = inputImageFile.find_last_of(".");
@@ -85,7 +87,7 @@ int main(int argc, char *argv[])
     std::cout << "Threshold: " << threshold << std::endl;
     std::cout << "Print components data?: " << bprintComponents << std::endl;
 
-    if (imageType == "pgm")
+    if (imageType == "pgm") // If the input image is a PGM image, use a unsigned char PGMimageProcessor object
     {
 
         NDLMDU011::PGMimageProcessor<unsigned char> *imageProcessor = new NDLMDU011::PGMimageProcessor<unsigned char>(inputImageFile);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
         std::cout << "Image read successfully." << std::endl;
 
         std::cout << "\nExtracting Components ..." << std::endl;
-        int num_comp = imageProcessor->extractComponents(threshold, minSize);
+        int num_comp = imageProcessor->extractComponents(threshold, minValidSize);
         std::cout << "Number of connected components (unfiltered): " << num_comp << std::endl;
 
         if (bwriteComponents)
@@ -134,14 +136,13 @@ int main(int argc, char *argv[])
         if (bWritePPM)
         {
             std::cout << "\nWriting out a PPM image with bounded boxes.." << std::endl;
-            imageProcessor->addBoundingBoxes();
-            imageProcessor->writePPMComponents(outputPPM);
+            imageProcessor->writeBoundedPPM(outputPPM);
             std::cout << "PPM Image written out" << std::endl;
         }
 
         delete imageProcessor;
     }
-    else if (imageType == "ppm")
+    else if (imageType == "ppm")// If the input image is a PPM image, use a PPMpixel PGMimageProcessor object
     {
         NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel> *imageProcessor = new NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel>(inputImageFile);
 
@@ -156,7 +157,7 @@ int main(int argc, char *argv[])
         std::cout << "Image read successfully." << std::endl;
 
         std::cout << "\nExtracting Components ..." << std::endl;
-        int num_comp = imageProcessor->extractComponents(threshold, minSize);
+        int num_comp = imageProcessor->extractComponents(threshold, minValidSize);
         std::cout << "Number of connected components (unfiltered): " << num_comp << std::endl;
 
         if (bwriteComponents)
@@ -189,48 +190,12 @@ int main(int argc, char *argv[])
         if (bWritePPM)
         {
             std::cout << "\nWriting out a PPM image with bounded boxes.." << std::endl;
-            imageProcessor->addBoundingBoxes();
-            imageProcessor->writePPMComponents(outputPPM);
+            imageProcessor->writeBoundedPPM(outputPPM);
             std::cout << "PPM Image written out" << std::endl;
         }
 
         delete imageProcessor;
     }
-
-    // NDLMDU011::PGMimageProcessor<NDLMDU011::PPMpixel> imageProcessor2(inputImageFile);
-
-    /* std::cout << "Extracting Components ..." << std::endl;
-     imageProcessor->extractComponents(threshold, minSize);
-     std::cout << "Number of connected components (unfiltered): " << imageProcessor->getComponentCount() << std::endl;
-
-     int ans = imageProcessor->getLargestSize();
-     std::cout << "The largest Connected Component has " << ans << " pixels." << std::endl;
-
-     ans = imageProcessor->getSmallestSize();
-     std::cout << "Smallest Connected Component has " << ans << " pixels." << std::endl;
-
-     if (bfilter)
-     {
-         std::cout << "\nFiltering Components by minimum size: " << minSize << " and maximum size: " << maxSize << std::endl;
-         int size = imageProcessor->filterComponentsBySize(minSize, maxSize);
-
-         std::cout << "Number of connected components (filtered): " << size << std::endl;
-         std::cout << "The largest Connected Component has " << imageProcessor->getLargestSize() << " pixels." << std::endl;
-         std::cout << "Smallest Connected Component has " << imageProcessor->getSmallestSize() << " pixels." << std::endl;
-     }
-
-     if (bwriteComponents)
-     {
-         std::cout << "\nWriting.. Connected components to PGM Image file " << std::endl;
-         bool done = imageProcessor->writeComponents(outImageFile);
-     }
-
-     if (bprintComponents)
-     {
-         std::cout << "\nPrinting the Conected components to console..." << std::endl;
-         imageProcessor->printAll();
-     }*/
-    // delete imageProcessor;
 
     return 0;
 }

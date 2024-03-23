@@ -1,3 +1,8 @@
+/*
+     MDUDUZI NDLOVU - NDLMDU011
+    PGMimageProcessor implementation file
+ */
+
 #include "PGMimageProcessor.h"
 #include <string>
 #include <iostream>
@@ -48,6 +53,9 @@ namespace NDLMDU011
         file_out << ppm.red << ppm.green << ppm.blue;
         return file_out;
     }
+    // Default Constructor
+    template <typename T>
+    PGMIP::PGMimageProcessor() : filename(""), imageHeight(0), imageWidth(0) {}
 
     // Custom constructor
     template <typename T>
@@ -56,8 +64,6 @@ namespace NDLMDU011
     template <typename T>
     PGMIP::~PGMimageProcessor()
     {
-        // std::cout << "Destructor" << std::endl;
-
         if (pixels != nullptr)
         {
             for (int i = 0; i < imageHeight; ++i)
@@ -88,6 +94,14 @@ namespace NDLMDU011
                 arr[i] = new T[width];
             }
         }
+
+        for (int row = 0; row < height; ++row)
+        {
+            for (int col = 0; col < width; ++col)
+            {
+                arr[row][col] = seen;
+            }
+        }
     }
 
     template <typename T>
@@ -115,26 +129,19 @@ namespace NDLMDU011
 
         std::getline(file_reader, line); // get the maximum value of the pixels in this image data usually 255
 
-        // pixels = new T *[imageHeight];
         initialiseArray(pixels, imageHeight, imageWidth);
-        // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
+
         T p;
         counter = 0;
+        // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
         for (int i = 0; i < imageHeight; ++i)
         {
-            // pixels[i] = new T[imageWidth];
             for (int j = 0; j < imageWidth; ++j)
             {
                 counter++;
-                // if (sizeof(T) == 3){}
-                //  file_reader.read(&p, 1);
                 file_reader >> p;
-                // pixels[i][j] = static_cast<T>(p);
                 pixels[i][j] = p;
-
-                // std::cout << (0 + pixels[i][j]) << " ";
             }
-            // std::cout << std::endl;
         }
         bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
         return image_read;
@@ -192,9 +199,12 @@ namespace NDLMDU011
                                  T source, T seen)
     {
         using namespace std;
-
-        // std::cout << "x: " << x << " y: " << y << " source: " << source << " seen: " << seen << std::endl;
         queue<pair<int, int>> q;
+
+        if (!isValid(pixels_arr, width, height, x, y, source, seen))
+        {
+            return;
+        }
 
         // Append the position of starting
         // pixel of the component
@@ -217,13 +227,11 @@ namespace NDLMDU011
             int x_coord = currPixel.first;
             int y_coord = currPixel.second;
 
-            // Check if the adjacent
-            // pixels are valid
+            // Check if the adjacent pixels are valid
+            // Visit the North Pixel
             if (isValid(pixels_arr, width, height, x_coord, y_coord + 1, source,
                         seen))
             {
-                // Color with seen
-                // if valid and enqueue
                 pixels_arr[y_coord + 1][x_coord] = seen;
                 p.first = x_coord;
                 p.second = y_coord + 1;
@@ -231,6 +239,7 @@ namespace NDLMDU011
                 q.push(p);
             }
 
+            // Visit the South Pixel
             if (isValid(pixels_arr, width, height, x_coord, y_coord - 1, source,
                         seen))
             {
@@ -241,6 +250,7 @@ namespace NDLMDU011
                 q.push(p);
             }
 
+            // Visit the West Pixel
             if (isValid(pixels_arr, width, height, x_coord - 1, y_coord, source,
                         seen))
             {
@@ -251,6 +261,7 @@ namespace NDLMDU011
                 q.push(p);
             }
 
+            // Visit the East Pixel and check if its valid then add it to Connected component if valid
             if (isValid(pixels_arr, width, height, x_coord + 1, y_coord, source,
                         seen))
             {
@@ -311,9 +322,9 @@ namespace NDLMDU011
                 std::shared_ptr<ConnectedComponent> cc(new ConnectedComponent(0, CCcontainer.size()));
                 cc->pixel_value = source;
 
-                // floodFill(pixels, cc, coordinates.second, coordinates.first, source, seen, threshold);
                 floodFillLooping(pixels, cc, imageWidth, imageHeight, coordinates.first, coordinates.second, source, seen);
 
+                // Filter/ discard out components below minValidSize
                 if (cc->getNumPixels() >= minValidSize)
                 {
                     CCcontainer.push_back(cc);
@@ -392,6 +403,7 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::setComponentsToArray()
     {
+        initialiseArray(pixels, imageHeight, imageWidth);
         for (int k = 0; k < CCcontainer.size(); ++k)
         {
             int compSize = CCcontainer[k]->getNumPixels();
@@ -419,7 +431,7 @@ namespace NDLMDU011
 
         std::ofstream outfile(outFileName, std::ofstream::binary);
 
-        // Write the header information of the .pgm file
+        // Write the header information of the .pgm or ppm file based on the filename extension
         if (imageType == "ppm")
         {
             outfile << "P6" << std::endl;
@@ -432,7 +444,7 @@ namespace NDLMDU011
         outfile << imageWidth << " " << imageHeight << std::endl;
         outfile << 255 << std::endl;
 
-        // add components data to array
+        // add detected components data to array
         if (!setComponentsToArray())
             return false;
 
@@ -440,12 +452,7 @@ namespace NDLMDU011
         {
             for (int j = 0; j < imageWidth; ++j)
             {
-                if (pixels[i][j] != white)
-                {
-                    pixels[i][j] = black;
-                }
-
-                unsigned char pix = (unsigned char) pixels[i][j]; 
+                T pix = (T)pixels[i][j];
                 outfile << pix;
                 // std::cout << (0 + pixels[i][j]) << " ";
             }
@@ -458,8 +465,8 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::addBoundingBoxes(void)
     {
-        readPGMImage();
-        convertToPPMArray();
+        readPGMImage(); // Read again the original pixel values of the image
+        convertToPPMArray(); // Convert the pixel values to RGB PPMpixel values
 
         PPMpixel red(255, 0, 0);
 
@@ -473,13 +480,12 @@ namespace NDLMDU011
             {
                 if (y == start_coords.second || y == end_coords.second)
                 {
+                    // Constructing a horizontal line at the top and bottom of the Connected Component
                     for (int x = start_coords.first; x <= end_coords.first; ++x)
-                    {
                         ppmArray[y][x] = red;
-                    }
                 }
                 else
-                {
+                { // Constructing a vertical line on the left and right of the Connected Component
                     ppmArray[y][start_coords.first] = red;
                     ppmArray[y][end_coords.first] = red;
                 }
@@ -490,7 +496,7 @@ namespace NDLMDU011
     }
 
     template <typename T>
-    bool PGMIP::writePPMComponents(const std::string &outFileName)
+    bool PGMIP::writeBoundedPPM(const std::string &outFileName)
     {
         // std::cout << "Writing to file " << std::endl;
         std::ofstream outfile(outFileName, std::ofstream::binary);
@@ -501,9 +507,7 @@ namespace NDLMDU011
         outfile << 255 << std::endl;
 
         if (!addBoundingBoxes())
-        {
             return false;
-        }
 
         for (int i = 0; i < imageHeight; ++i)
         {
@@ -540,21 +544,18 @@ namespace NDLMDU011
     {
         int length = theComponent.getNumPixels();
         std::cout << "Component ID: " << theComponent.getID() << ", Number of Pixels: " << length << std::endl;
-
-        /*for (int i = 0; i < length; ++i)
-        {
-            std::cout << "(y , x) = (" << theComponent.getY(i) << "," << theComponent.getX(i) << ")" << std::endl;
-        }*/
     }
 
     template <typename T>
-    void PGMIP::clearArray(T **arr, int height)
+    void PGMIP::clearArray(T **&arr, int height)
     {
-        for (int i = 0; i < height; ++i)
+        if (arr != nullptr)
         {
-            delete[] arr[i];
-        }
-        delete[] arr;
-    }
+            for (int i = 0; i < height; ++i)
+                delete[] arr[i];
 
+            delete[] arr;
+            arr = nullptr;
+        }
+    }
 }

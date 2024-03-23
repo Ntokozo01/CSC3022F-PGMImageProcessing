@@ -12,7 +12,7 @@ TEST_TARGET = drivertest.exe
 
 # Source files
 SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp driver.cpp ConnectedComponent.h PGMimageProcessor.h
-TEST_SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp drivertest.cpp
+TEST_SRCS = ConnectedComponent.cpp PGMimageProcessor.cpp drivertest.cpp ConnectedComponent.h PGMimageProcessor.h
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
@@ -44,5 +44,5 @@ run: $(TARGET)
 
 # Clean target to clean all compiled object files and executable file and remove generated PGM images 
 clean:
-	rm *.o *.exe
-#	find . -type f -name '*.pgm' ! \( -name 'chess.pgm' -o -name 'cheetah.pgm' -o -name 'chess-thresh-separate.pgm' -o -name 'boundary.pgm' -o -name 'House.pgm' -o -name 'maize.pgm' -o -name 'camera-man.pgm' -o -name 'shapes.pgm' \) -exec rm {} +
+	rm *.o *.exe *.ppm
+	find . -type f -name '*.pgm' ! \( -name 'chess.pgm' -o -name 'cheetah.pgm' -o -name 'chess-thresh-separate.pgm' -o -name 'boundary.pgm' -o -name 'House.pgm' -o -name 'blocks.pgm' -o -name 'camera-man.pgm' -o -name 'shapes.pgm' \) -exec rm {} +
