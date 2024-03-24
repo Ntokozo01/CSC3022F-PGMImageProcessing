@@ -139,8 +139,57 @@ namespace NDLMDU011
             for (int j = 0; j < imageWidth; ++j)
             {
                 counter++;
-                file_reader >> p;
-                pixels[i][j] = p;
+                char p1;
+                file_reader.read(&p1, 1);
+                pixels[i][j] = static_cast<T>(p1);
+            }
+        }
+        bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
+        return image_read;
+    }
+
+    template <>
+    bool PGMimageProcessor<PPMpixel>::readPGMImage()
+    {
+        // Read the PPM input image and save the data in the appropriate variables
+        std::ifstream file_reader(filename, std::fstream::binary);
+
+        if (!file_reader)
+            return false;
+
+        std::string line;
+        std::getline(file_reader, line); // get the Magic number of input image which is "P6"
+
+        // Read the next line and check if it is a comment line, repeats until the line read is not a comment
+        std::getline(file_reader, line);
+        while (line[0] == '#') // comment lines start with the character '#'
+        {
+            std::getline(file_reader, line);
+        }
+
+        // Next line after comments is the image dimensions line which is width and height, extracts it from the line
+        std::istringstream iss(line);
+        iss >> imageWidth >> imageHeight;
+
+        std::getline(file_reader, line); // get the maximum value of the pixels in this image data usually 255
+
+        initialiseArray(pixels, imageHeight, imageWidth);
+
+        PPMpixel p;
+        counter = 0;
+        // read each pixel value as 1 byte char and cast it into the unsigned char value to store it in the pixels array
+        for (int i = 0; i < imageHeight; ++i)
+        {
+            for (int j = 0; j < imageWidth; ++j)
+            {
+                counter++;
+                char p1;
+                file_reader.read(&p1, 1);
+                pixels[i][j].red = static_cast<unsigned char>(p1);
+                file_reader.read(&p1, 1);
+                pixels[i][j].green = static_cast<unsigned char>(p1);
+                file_reader.read(&p1, 1);
+                pixels[i][j].blue = static_cast<unsigned char>(p1);
             }
         }
         bool image_read = (counter > 0 && counter == (imageWidth * imageHeight));
@@ -150,7 +199,6 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::convertToPPMArray(void)
     {
-
         ppmArray = new PPMpixel *[imageHeight];
         for (int i = 0; i < imageHeight; ++i)
         {
@@ -452,12 +500,27 @@ namespace NDLMDU011
         {
             for (int j = 0; j < imageWidth; ++j)
             {
-                T pix = (T)pixels[i][j];
-                outfile << pix;
+                if (pixels[i][j] != white)
+                {
+                    pixels[i][j] = black;
+                }
+
+                if (imageType == "pgm")
+                {
+                    unsigned char pix = pixels[i][j]; // implicit cast to unsigned char
+                    outfile << pix;
+                    // std::cout << (0 + pix) << " ";
+                }
+                else
+                {
+                    outfile << pixels[i][j];
+                }
                 // std::cout << (0 + pixels[i][j]) << " ";
             }
-            // std::cout << std::endl;
+           // std::cout << std::endl;
         }
+
+        outfile.close();
 
         return true;
     }
@@ -465,7 +528,7 @@ namespace NDLMDU011
     template <typename T>
     bool PGMIP::addBoundingBoxes(void)
     {
-        readPGMImage(); // Read again the original pixel values of the image
+        readPGMImage();      // Read again the original pixel values of the image
         convertToPPMArray(); // Convert the pixel values to RGB PPMpixel values
 
         PPMpixel red(255, 0, 0);
@@ -520,6 +583,7 @@ namespace NDLMDU011
             }
             // std::cout << std::endl;
         }
+        outfile.close();
 
         return true;
     }
@@ -557,5 +621,118 @@ namespace NDLMDU011
             delete[] arr;
             arr = nullptr;
         }
+    }
+
+    /// PGMimageProcessor Copy Constructor
+    template <typename T>
+    PGMIP::PGMimageProcessor(const PGMimageProcessor &pgm)
+    {
+        filename = pgm.filename;
+        imageWidth = pgm.imageWidth;
+        imageHeight = pgm.imageHeight;
+
+        pixels = new T *[imageHeight];
+        for (int i = 0; i < imageHeight; ++i)
+        {
+            pixels[i] = new T[imageWidth];
+            for (int j = 0; j < imageWidth; ++j)
+            {
+                pixels[i][j] = pgm.pixels[i][j];
+            }
+        }
+
+        convertToPPMArray();
+
+        for (int i = 0; i < pgm.CCcontainer.size(); ++i)
+        {
+            std::shared_ptr<ConnectedComponent> cc = std::make_shared<ConnectedComponent>(*pgm.CCcontainer[i].get());
+            CCcontainer.push_back(cc);
+        }
+    }
+
+    /// PGMimageProcessor Move Constructor
+    template <typename T>
+    PGMIP::PGMimageProcessor(PGMimageProcessor &&pgm)
+    {
+        filename = std::move(pgm.filename);
+        imageWidth = pgm.imageWidth;
+        imageHeight = pgm.imageHeight;
+
+        pixels = pgm.pixels;
+        ppmArray = pgm.ppmArray;
+
+        pgm.pixels = nullptr;
+        pgm.ppmArray = nullptr;
+
+        CCcontainer = std::move(pgm.CCcontainer);
+    }
+
+    /// PGMimageProcessor Copy Assignment operator
+    template <typename T>
+    PGMimageProcessor<T> &PGMIP::operator=(const PGMimageProcessor &pgm)
+    {
+        filename = pgm.filename;
+        imageWidth = pgm.imageWidth;
+        imageHeight = pgm.imageHeight;
+
+        clearArray(pixels, imageHeight);
+
+        pixels = new T *[imageHeight];
+        for (int i = 0; i < imageHeight; ++i)
+        {
+            pixels[i] = new T[imageWidth];
+            for (int j = 0; j < imageWidth; ++j)
+            {
+                pixels[i][j] = pgm.pixels[i][j];
+            }
+        }
+
+        convertToPPMArray();
+        CCcontainer.clear();
+
+        for (int i = 0; i < pgm.CCcontainer.size(); ++i)
+        {
+            // std::shared_ptr<ConnectedComponent> ptr (new ConnectedComponent());
+            std::shared_ptr<ConnectedComponent> cc = std::make_shared<ConnectedComponent>(*pgm.CCcontainer[i].get());
+            CCcontainer.push_back(cc);
+        }
+
+        return *this;
+    }
+    /// PGMimageProcessor Move Assignment operator
+    template <typename T>
+    PGMIP &PGMIP::operator=(PGMimageProcessor &&pgm)
+    {
+        filename = std::move(pgm.filename);
+        imageWidth = pgm.imageWidth;
+        imageHeight = pgm.imageHeight;
+
+        if (pixels != nullptr)
+        {
+            for (int i = 0; i < imageHeight; ++i)
+            {
+                delete[] pixels[i];
+            }
+            delete[] pixels;
+        }
+
+        if (ppmArray != nullptr)
+        {
+            for (int i = 0; i < imageHeight; ++i)
+            {
+                delete[] ppmArray[i];
+            }
+            delete[] ppmArray;
+        }
+
+        pixels = pgm.pixels;
+        ppmArray = pgm.ppmArray;
+
+        pgm.pixels = nullptr;
+        pgm.ppmArray = nullptr;
+
+        CCcontainer.clear();
+        CCcontainer = std::move(pgm.CCcontainer);
+        return *this;
     }
 }

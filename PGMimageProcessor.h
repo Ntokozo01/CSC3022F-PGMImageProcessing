@@ -69,10 +69,21 @@ namespace NDLMDU011
         // Custom Constructor with input image filename
         PGMimageProcessor(std::string fname);
 
+        /// PGMimageProcessor Copy Constructor
+        PGMimageProcessor(const PGMimageProcessor &cc);
+
+        /// PGMimageProcessor Move Constructor
+        PGMimageProcessor(PGMimageProcessor &&cc);
+
+        /// PGMimageProcessor Copy Assignment operator
+        PGMimageProcessor &operator=(const PGMimageProcessor &rhs);
+        /// PGMimageProcessor Move Assignment operator
+        PGMimageProcessor &operator=(PGMimageProcessor &&rhs);
+
         // Destructor
         ~PGMimageProcessor();
 
-        // Dynamically allocates memory for 2D image of the size width x height and set each value as seen/black/zero 
+        // Dynamically allocates memory for 2D image of the size width x height and set each value as seen/black/zero
         void initialiseArray(T **&arr, int height, int width);
 
         // Reads the PGM or PPM image of the supplied filename and writes its pixel values to pixels
@@ -95,10 +106,9 @@ namespace NDLMDU011
         // Calls on the floodFill algorith to get each connected component's pixels
         int extractComponents(T threshold, int minValidSize);
 
-
         int filterComponentsBySize(int minSize, int maxSize);
 
-        // Set all the pixels which are part of the connected component White(255) and the rest black (0) 
+        // Set all the pixels which are part of the connected component White(255) and the rest black (0)
         bool setComponentsToArray();
 
         // Calls on setComponentsToArray to put components into pixes as black and white then writes out the output image
@@ -132,7 +142,6 @@ namespace NDLMDU011
 
         // Deletes the dynamically allocated memory of the 2D array
         void clearArray(T **&arr, int height);
-
     };
 
 }
